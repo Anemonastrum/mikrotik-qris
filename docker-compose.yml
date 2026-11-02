@@ -1,0 +1,26 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mikrotik-qris-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_PATH=/app/data/mikrotik-qris.db
+      # Midtrans Configuration
+      - MIDTRANS_SERVER_KEY=${MIDTRANS_SERVER_KEY:-SB-Mid-server-demo-key}
+      - MIDTRANS_CLIENT_KEY=${MIDTRANS_CLIENT_KEY:-SB-Mid-client-demo-key}
+      - MIDTRANS_IS_PRODUCTION=${MIDTRANS_IS_PRODUCTION:-false}
+      # MikroTik RouterOS Configuration
+      - MIKROTIK_HOST=${MIKROTIK_HOST:-}
+      - MIKROTIK_PORT=${MIKROTIK_PORT:-80}
+      - MIKROTIK_USER=${MIKROTIK_USER:-admin}
+      - MIKROTIK_PASSWORD=${MIKROTIK_PASSWORD:-}
+      - MIKROTIK_USE_HTTPS=${MIKROTIK_USE_HTTPS:-false}
+      - MIKROTIK_DEFAULT_PROFILE=${MIKROTIK_DEFAULT_PROFILE:-default}
+    volumes:
+      - ./data:/app/data
