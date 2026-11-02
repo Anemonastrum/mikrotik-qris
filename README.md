@@ -1,36 +1,36 @@
-# MikroTik Hotspot QRIS Voucher System
+# MikroTik Hotspot QRIS Voucher Gateway
 
-Sistem halaman login MikroTik Hotspot terintegrasi payment gateway **Midtrans QRIS**. Pengguna dapat membeli kode voucher internet langsung dari captive portal secara instan menggunakan QRIS (BCA, GoPay, OVO, DANA, ShopeePay, LinkAja, Mobile Banking), dan langsung online via tombol **Login Otomatis**.
+Production-grade captive portal template and backend integration for MikroTik RouterOS and Midtrans QRIS payment gateway. Users can authenticate with vouchers, access free trials, or purchase hotspot vouchers in-portal using standard Indonesian QRIS (GoPay, OVO, DANA, ShopeePay, BCA, Livin' Mandiri, and other mobile banking applications).
 
 ---
 
-## 🏗️ Arsitektur Sistem
+## Architecture
 
 ```
 +------------------------------------------------------------------+
-|                     Perangkat Klien (Smartphone/PC)              |
+|                     Client Device (Mobile / PC)                  |
 +------------------------------------------------------------------+
                                  │
-           1. Terhubung WiFi Hotspot (Captive Portal)
+           1. Connect to WiFi / Captive Portal Trigger
                                  ▼
 +------------------------------------------------------------------+
 |               MikroTik RouterOS (Hotspot Server)                 |
-|  - Menyajikan template /hotspot (login.html, status.html, dll)   |
-|  - Walled Garden: Mengizinkan akses ke Express Backend & QRIS    |
+|  - Serves static /hotspot template with MUIX design system       |
+|  - Walled Garden: Permits unauthenticated access to backend & QR |
+|  - Supports native Free Trial activation                         |
 +------------------------------------------------------------------+
                                  │
-             2. Klik "Beli Voucher" -> Memanggil API Backend
+           2. Buy Voucher via In-Page Modal (API Calls)
                                  ▼
 +------------------------------------------------------------------+
-|           Express.js Backend Service (Docker di Linux)           |
-|  - Membuat transaksi QRIS ke Midtrans Core API                  |
-|  - Verifikasi Webhook Signature (SHA-512)                        |
-|  - Generate kode voucher unik                                    |
-|  - Menambahkan user ke MikroTik (/rest/ip/hotspot/user)          |
-|  - Database transaksi lokal (SQLite WAL)                         |
+|           Express.js Backend Service (Docker on Linux)           |
+|  - Initiates QRIS charges with Midtrans Core API                 |
+|  - Validates webhook signatures (SHA-512)                        |
+|  - Provisions users via RouterOS v7 REST API                     |
+|  - Persists state in local SQLite with WAL mode                  |
 +------------------------------------------------------------------+
                  │                                  │
-      3. Charge QRIS via API             4. Webhook Notifikasi
+       3. POST /v2/charge                 4. Webhook Notification
                  ▼                                  ▲
 +------------------------------------------------------------------+
 |                  Midtrans Payment Gateway (QRIS)                 |
@@ -39,181 +39,184 @@ Sistem halaman login MikroTik Hotspot terintegrasi payment gateway **Midtrans QR
 
 ---
 
-## ✨ Fitur Utama
+## Features
 
-- **In-Page QRIS Purchase**: Pengguna membeli voucher langsung di jendela captive portal tanpa dialihkan ke browser eksternal.
-- **Midtrans Core API QRIS**: Mendukung semua e-wallet dan m-banking berstandar QRIS nasional (BCA Mobile, Livin' Mandiri, BRImo, GoPay, OVO, DANA, ShopeePay).
-- **Auto-Login Satu Klik**: Setelah pembayaran terkonfirmasi, tombol login otomatis langsung mengotentikasi pengguna ke MikroTik tanpa perlu mengetik ulang kode.
-- **Auto-Provisioning MikroTik**: Backend secara otomatis membuat user hotspot baru di router MikroTik melalui RouterOS v7 REST API.
-- **Verifikasi Webhook Aman**: Validasi tanda tangan SHA-512 memastikan notifikasi pembayaran sah dan mencegah pemalsuan voucher.
-- **Pengecekan Status Fallback**: Frontend melakukan polling berkala ke backend, memastikan voucher tetap terbit meskipun webhook terhambat NAT.
-- **Cek / Cetak Ulang Voucher**: Pengguna dapat memasukkan Order ID untuk melihat kembali kode voucher yang sudah dibeli.
-- **Docker Ready**: Backend Express dibungkus dalam Docker container ringan (Node 22 Alpine) dengan volume persistensi SQLite.
+- In-Page QRIS Checkout: Users complete payment inside the captive portal browser without navigating away.
+- MUIX Design System: Modern UI inspired by compose-miuix-ui and HyperOS, featuring squircle cards, segmented controls, and Heroicons.
+- Dynamic Dark and Light Theme: Automatic system theme detection with manual toggle and persistence via localStorage.
+- Free Trial Integration: Supports MikroTik native trial login (`$(trial == 'yes')`) for instant connection testing.
+- SHA-512 Signature Verification: Cryptographic verification of all Midtrans webhook payloads preventing tampering.
+- Auto-Login: Automatically fills credentials and triggers CHAP MD5 authentication upon payment confirmation.
+- RouterOS Provisioning: Provisions hotspot users dynamically via the RouterOS v7 REST API (`/rest/ip/hotspot/user`) with standalone fallback.
+- Polling Fallback: Client-side polling queries backend status every 3 seconds to recover transactions when webhooks are delayed by NAT.
+- Zero External Frontend Build Tools: Hotspot template uses standard HTML5, CSS3, and vanilla JavaScript compatible with RouterOS storage limits.
+- Containerized Backend: Packaged with Docker and Docker Compose using Node.js 22 Alpine and native `node:sqlite`.
 
 ---
 
-## 📁 Struktur Direktori
+## Repository Structure
 
 ```
 .
 ├── backend/
-│   ├── Dockerfile             # Container image Node.js 22 Alpine
-│   ├── package.json           # Dependensi Express
-│   ├── .env.example           # Contoh konfigurasi environment
+│   ├── Dockerfile             # Node.js 22 Alpine production container
+│   ├── package.json           # Dependencies and test runner script
+│   ├── .env.example           # Environment variable template
 │   ├── src/
-│   │   ├── config.js          # Pengaturan server, Midtrans, dan MikroTik
-│   │   ├── db.js              # Database SQLite (packages, orders, vouchers)
-│   │   ├── midtrans.js        # Integrasi QRIS & validasi SHA-512 signature
-│   │   ├── mikrotik.js        # Generator voucher & RouterOS REST API client
-│   │   ├── app.js             # Express app & route handlers
-│   │   └── server.js          # Entry point server
-│   └── tests/                 # Unit & integration test suite (16 tests)
-├── hotspot/                   # Template MikroTik Hotspot
-│   ├── login.html             # Halaman login & modal pembelian QRIS
-│   ├── status.html            # Halaman status koneksi (uptime, kuota, logout)
-│   ├── logout.html            # Halaman konfirmasi logout
-│   ├── alogin.html            # Redirect otomatis pasca-login
-│   ├── rlogin.html            # Redirect login
-│   ├── errors.txt             # Pesan error berbahasa Indonesia
-│   ├── md5.js                 # Algoritma CHAP MD5 MikroTik
-│   ├── css/style.css          # Desain antarmuka modern & responsif
-│   └── js/app.js              # Logika frontend QRIS, countdown & auto-login
-├── docker-compose.yml         # Konfigurasi deployment Docker
-├── mikrotik-setup.rsc         # Script konfigurasi Walled Garden & Profile MikroTik
+│   │   ├── config.js          # Application, Midtrans, and RouterOS settings
+│   │   ├── db.js              # SQLite database layer (WAL mode)
+│   │   ├── midtrans.js        # Midtrans QRIS client & SHA-512 verification
+│   │   ├── mikrotik.js        # Voucher generator & RouterOS REST API client
+│   │   ├── app.js             # Express application & route handlers
+│   │   └── server.js          # HTTP service entrypoint
+│   └── tests/                 # Node.js native test suite
+├── hotspot/                   # MikroTik Hotspot directory
+│   ├── login.html             # Login page with MUIX design & QRIS modal
+│   ├── status.html            # Connection status page
+│   ├── logout.html            # Session termination page
+│   ├── alogin.html            # Post-login redirect handler
+│   ├── rlogin.html            # Fallback redirect handler
+│   ├── errors.txt             # RouterOS localized error mappings
+│   ├── md5.js                 # RFC 1321 MD5 hash implementation for CHAP
+│   ├── css/style.css          # MUIX theme styles (dark/light support)
+│   └── js/app.js              # Theme switcher, QRIS checkout & auto-login
+├── docker-compose.yml         # Container deployment configuration
+├── mikrotik-setup.rsc         # RouterOS walled garden and profile setup script
 └── README.md
 ```
 
 ---
 
-## 🚀 Panduan Instalasi & Deployment
+## Setup and Deployment
 
-### Langkah 1: Jalankan Backend dengan Docker di Server Linux
+### 1. Deploy the Backend on Linux
 
-1. Clone repositori ke server Linux Anda:
+1. Clone the repository:
    ```bash
    git clone https://github.com/Anemonastrum/mikrotik-qris.git
    cd mikrotik-qris
    ```
 
-2. Buat file konfigurasi `.env` dari `.env.example`:
+2. Copy the sample environment file and configure variables:
    ```bash
    cp backend/.env.example backend/.env
    nano backend/.env
    ```
 
-3. Sesuaikan parameter berikut:
+3. Set your keys and network addresses:
    ```env
    PORT=3000
    NODE_ENV=production
    DB_PATH=/app/data/mikrotik-qris.db
 
-   # Midtrans Server Key & Client Key (dari Dashboard Midtrans)
-   MIDTRANS_SERVER_KEY=SB-Mid-server-xxxxxxxxxxxxxxxxx
-   MIDTRANS_CLIENT_KEY=SB-Mid-client-xxxxxxxxxxxxxxxxx
-   MIDTRANS_IS_PRODUCTION=false # Ubah ke true untuk live production
+   # Midtrans API credentials (from https://dashboard.midtrans.com/)
+   MIDTRANS_SERVER_KEY=SB-Mid-server-your-server-key
+   MIDTRANS_CLIENT_KEY=SB-Mid-client-your-client-key
+   MIDTRANS_IS_PRODUCTION=false
 
-   # Koneksi ke MikroTik RouterOS (RouterOS v7 REST API)
+   # MikroTik RouterOS v7 REST API
    MIKROTIK_HOST=192.168.88.1
    MIKROTIK_PORT=80
    MIKROTIK_USER=admin
-   MIKROTIK_PASSWORD=password_mikrotik_anda
+   MIKROTIK_PASSWORD=your-router-password
    MIKROTIK_USE_HTTPS=false
    MIKROTIK_DEFAULT_PROFILE=default
    ```
 
-4. Jalankan backend menggunakan Docker Compose:
+4. Launch the container:
    ```bash
    docker compose up -d --build
    ```
 
-5. Verifikasi backend telah berjalan:
+5. Confirm health status:
    ```bash
    curl http://localhost:3000/api/health
-   # Respon: {"status":"ok","timestamp":"..."}
+   # Returns: {"status":"ok","timestamp":"..."}
    ```
 
 ---
 
-### Langkah 2: Konfigurasi Walled Garden di MikroTik RouterOS
+### 2. Configure MikroTik RouterOS
 
-Agar pengguna yang belum login dapat membuka QRIS dan berkomunikasi dengan backend, aturan Walled Garden harus dipasang.
+1. Open RouterOS terminal or Winbox.
+2. Add Walled Garden rules allowing clients to reach the backend host and Midtrans hosts before authentication (replace `192.168.88.2` with your backend server IP):
+   ```routeros
+   # Permit access to Express backend
+   /ip hotspot walled-garden ip
+   add action=accept dst-address=192.168.88.2 comment="QRIS-Backend-Server"
 
-1. Buka Winbox atau Terminal MikroTik.
-2. Import script `mikrotik-setup.rsc` atau jalankan perintah berikut (ganti `192.168.88.2` dengan IP server backend Anda):
+   # Permit access to Midtrans and QR code endpoints
+   /ip hotspot walled-garden
+   add action=allow dst-host=api.midtrans.com comment="Midtrans Production API"
+   add action=allow dst-host=api.sandbox.midtrans.com comment="Midtrans Sandbox API"
+   add action=allow dst-host=app.midtrans.com comment="Midtrans App Production"
+   add action=allow dst-host=app.sandbox.midtrans.com comment="Midtrans App Sandbox"
+   add action=allow dst-host=api.qrserver.com comment="QR Generator CDN"
 
-```routeros
-# Izinkan akses ke server backend
-/ip hotspot walled-garden ip
-add action=accept dst-address=192.168.88.2 comment="QRIS-Backend-Server"
+   # Enable RouterOS REST API (port 80 or 443)
+   /ip service set www disabled=no port=80
+   ```
 
-# Izinkan akses ke domain Midtrans
-/ip hotspot walled-garden
-add action=allow dst-host=api.midtrans.com comment="Midtrans Production API"
-add action=allow dst-host=api.sandbox.midtrans.com comment="Midtrans Sandbox API"
-add action=allow dst-host=app.midtrans.com comment="Midtrans App Production"
-add action=allow dst-host=app.sandbox.midtrans.com comment="Midtrans App Sandbox"
-add action=allow dst-host=api.qrserver.com comment="QR Code Generator CDN"
-
-# Pastikan service REST API aktif (RouterOS v7)
-/ip service set www disabled=no port=80
-```
+3. (Optional) Configure Free Trial access in RouterOS Hotspot Server Profile:
+   ```routeros
+   /ip hotspot profile
+   set [find default=yes] login-by=http-chap,trial trial-uptime-limit=30m trial-uptime-reset=1d
+   ```
 
 ---
 
-### Langkah 3: Upload Template Hotspot ke MikroTik
+### 3. Install Hotspot Files on RouterOS
 
-1. Buka folder `hotspot/` pada komputer Anda.
-2. Edit baris meta `backend-url` pada `hotspot/login.html` jika IP backend berbeda dengan gateway hotspot:
+1. If the backend is running on a dedicated host different from the default gateway, specify the backend URL in `hotspot/login.html`:
    ```html
    <meta name="backend-url" content="http://192.168.88.2:3000" />
    ```
-3. Buka **Winbox** -> menu **Files**.
-4. Drag & drop seluruh isi folder `hotspot/` ke direktori hotspot router Anda (biasanya `flash/hotspot` atau `hotspot`).
-5. Pada menu **IP** -> **Hotspot** -> tab **Server Profiles** -> buka profil hotspot Anda -> pastikan **HTML Directory** mengarah ke folder template yang baru di-upload.
+2. Upload the `hotspot/` directory to your MikroTik storage (`Files` in Winbox or via SFTP).
+3. Set the HTML directory in `/ip hotspot profile` to point to the uploaded folder.
 
 ---
 
-### Langkah 4: Pengaturan Webhook di Dashboard Midtrans
+### 4. Midtrans Webhook Configuration
 
-1. Masuk ke [Dashboard Midtrans](https://dashboard.midtrans.com/).
-2. Buka menu **Settings** -> **Configuration**.
-3. Pada bagian **Payment Notification URL**, isi URL webhook backend Anda:
+1. Log in to [Midtrans Dashboard](https://dashboard.midtrans.com/).
+2. Navigate to **Settings** > **Configuration**.
+3. Set the **Payment Notification URL** to:
    ```
-   https://domain-backend-anda.com/api/payment/webhook
+   https://your-public-backend-domain.com/api/payment/webhook
    ```
-   *(Jika server backend berada di jaringan lokal tanpa IP publik, Anda dapat menggunakan Cloudflare Tunnel atau reverse proxy untuk meneruskan notifikasi webhook ke port 3000).*
+4. If running locally without a public IP, use Cloudflare Tunnel or an equivalent reverse proxy to expose port 3000.
 
 ---
 
-## 📡 Dokumentasi API Backend
+## API Reference
 
-| Method | Endpoint | Deskripsi |
+| Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/api/health` | Healthcheck server status |
-| `GET` | `/api/packages` | Mengambil daftar paket voucher aktif |
-| `POST` | `/api/payment/create-qris` | Membuat order baru & menghasilkan QRIS Midtrans |
-| `GET` | `/api/payment/status/:orderId` | Memeriksa status transaksi & mengambil kode voucher |
-| `POST` | `/api/payment/webhook` | Endpoint penerima notifikasi callback dari Midtrans |
+| `GET` | `/api/health` | Service health status check |
+| `GET` | `/api/packages` | Retrieves active hotspot voucher packages |
+| `POST` | `/api/payment/create-qris` | Creates an order and requests a Midtrans QRIS charge |
+| `GET` | `/api/payment/status/:orderId` | Retrieves payment status and generated voucher credentials |
+| `POST` | `/api/payment/webhook` | Receives payment callbacks from Midtrans |
 
 ---
 
-## 🧪 Menjalankan Test
+## Testing
 
-Proyek ini dilengkapi dengan automated unit & integration test menggunakan native test runner Node.js (`node:test`):
+Run the automated test suite using Node.js native test runner:
 
 ```bash
 cd backend
 npm test
 ```
 
-Semua 16 pengujian mencakup:
-- Inisialisasi database SQLite dan operasi CRUD voucher.
-- Pembuatan QRIS payload & validasi tanda tangan SHA-512 Midtrans.
-- Generator kode acak voucher unik & payload RouterOS user.
-- Endpoint API Express, penanganan webhook, serta fallback rekonsiliasi pembayaran.
+Test coverage includes:
+- SQLite schema generation and order-voucher CRUD operations
+- Midtrans QRIS payload builder and SHA-512 signature validation
+- RouterOS user payload formatting and voucher code generation
+- API endpoints, webhook handling, and status reconciliation
 
 ---
 
-## 📄 Lisensi
+## License
 
-MIT License. Bebas digunakan dan dimodifikasi untuk kebutuhan jaringan RT/RW Net, kafe, kantor, atau hotspot komersial Anda.
+MIT License.

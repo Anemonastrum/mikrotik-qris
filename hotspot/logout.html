@@ -1,48 +1,66 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="pragma" content="no-cache">
   <meta http-equiv="expires" content="-1">
-  <title>Logout Hotspot</title>
+  <title>Hotspot Logout</title>
   <link rel="stylesheet" href="css/style.css">
+  <script>
+    (function() {
+      var saved = localStorage.getItem('miuix_theme');
+      if (saved) {
+        document.documentElement.setAttribute('data-theme', saved);
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo-badge" style="background:#64748b;">DISCONNECTED</div>
-      <h1>Anda Telah Keluar</h1>
-      <p>Sesi internet Anda telah berhasil diakhiri</p>
+      <div class="brand-pill" style="background:var(--miuix-surface-variant); color:var(--miuix-text-secondary);">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75" />
+        </svg>
+        <span>Disconnected</span>
+      </div>
+      <h1>Session Ended</h1>
+      <p>You have been disconnected from the network</p>
     </div>
 
-    <div class="card">
+    <div class="miuix-card">
       <table class="status-table">
         <tr>
           <td>User / Voucher</td>
           <td>$(username)</td>
         </tr>
         <tr>
-          <td>Alamat IP</td>
+          <td>IP Address</td>
           <td>$(ip)</td>
         </tr>
         <tr>
-          <td>Total Waktu Online</td>
+          <td>Total Online Time</td>
           <td>$(uptime)</td>
         </tr>
         <tr>
-          <td>Total Pemakaian Data</td>
+          <td>Data Transferred</td>
           <td>$(bytes-out-nice) (Down) / $(bytes-in-nice) (Up)</td>
         </tr>
       </table>
 
       <a href="$(link-login)" class="btn btn-primary">
-        LOGIN KEMBALI
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+        </svg>
+        <span>Log In Again</span>
       </a>
     </div>
 
     <div class="footer">
-      &copy; 2026 Hotspot QRIS System.
+      MikroTik Hotspot Portal
     </div>
   </div>
 </body>

@@ -1,14 +1,23 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="refresh" content="1; url=$(link-redirect)">
   <meta http-equiv="pragma" content="no-cache">
   <meta http-equiv="expires" content="-1">
-  <title>Login Berhasil - Mengalihkan...</title>
+  <title>Login Successful</title>
   <link rel="stylesheet" href="css/style.css">
   <script>
+    (function() {
+      var saved = localStorage.getItem('miuix_theme');
+      if (saved) {
+        document.documentElement.setAttribute('data-theme', saved);
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+
     function startRedirect() {
       window.location.href = '$(link-redirect)';
     }
@@ -16,13 +25,19 @@
 </head>
 <body onload="startRedirect()">
   <div class="container" style="text-align: center;">
-    <div class="card">
-      <div style="font-size:2rem; margin-bottom:0.5rem; color:var(--success);">✓</div>
-      <h2 style="font-size:1.25rem; font-weight:700; color:var(--secondary); margin-bottom:0.5rem;">Berhasil Terhubung!</h2>
-      <p style="font-size:0.875rem; color:var(--text-muted); margin-bottom:1.25rem;">
-        Anda akan dialihkan ke halaman tujuan dalam beberapa detik...
+    <div class="miuix-card">
+      <div style="display:inline-flex; background:var(--miuix-success-container); color:var(--miuix-success); border-radius:50%; width:50px; height:50px; align-items:center; justify-content:center; margin-bottom:1rem;">
+        <svg style="width:26px; height:26px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+        </svg>
+      </div>
+      <h2 style="font-size:1.25rem; font-weight:700; color:var(--miuix-text); margin-bottom:0.5rem;">Connected to Internet</h2>
+      <p style="font-size:0.875rem; color:var(--miuix-text-secondary); margin-bottom:1.25rem;">
+        Redirecting to requested destination...
       </p>
-      <a href="$(link-redirect)" class="btn btn-primary">Lanjutkan Browsing</a>
+      <a href="$(link-redirect)" class="btn btn-primary">
+        <span>Continue</span>
+      </a>
     </div>
   </div>
 </body>

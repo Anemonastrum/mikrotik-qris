@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  // Resolve backend API URL
+  // Backend API URL Resolution
   const metaBackend = document.querySelector('meta[name="backend-url"]');
   const BACKEND_URL = (metaBackend && metaBackend.content) ||
     window.BACKEND_URL ||
@@ -31,6 +31,49 @@
   const btnAutoLogin = document.getElementById('btnAutoLogin');
   const phoneInput = document.getElementById('customerPhone');
 
+  // Theme Controller (MUIX Dark/Light Mode)
+  const btnThemeToggle = document.getElementById('btnThemeToggle');
+  const iconSun = document.getElementById('iconSun');
+  const iconMoon = document.getElementById('iconMoon');
+
+  function initTheme() {
+    const savedTheme = localStorage.getItem('miuix_theme');
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const currentTheme = savedTheme || (prefersDark ? 'dark' : 'light');
+    applyTheme(currentTheme);
+
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+        if (!localStorage.getItem('miuix_theme')) {
+          applyTheme(e.matches ? 'dark' : 'light');
+        }
+      });
+    }
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    if (theme === 'dark') {
+      if (iconSun) iconSun.style.display = 'block';
+      if (iconMoon) iconMoon.style.display = 'none';
+    } else {
+      if (iconSun) iconSun.style.display = 'none';
+      if (iconMoon) iconMoon.style.display = 'block';
+    }
+  }
+
+  if (btnThemeToggle) {
+    btnThemeToggle.addEventListener('click', function () {
+      const current = document.documentElement.getAttribute('data-theme') ||
+        (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      const next = current === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('miuix_theme', next);
+      applyTheme(next);
+    });
+  }
+
+  initTheme();
+
   // Tab switching (Voucher vs Member)
   const tabVoucher = document.getElementById('tabVoucher');
   const tabMember = document.getElementById('tabMember');
@@ -44,8 +87,8 @@
       tabVoucher.classList.add('active');
       tabMember.classList.remove('active');
       if (groupPassword) groupPassword.style.display = 'none';
-      if (labelUsername) labelUsername.innerText = 'Kode Voucher';
-      if (inputUsername) inputUsername.placeholder = 'Masukkan kode voucher';
+      if (labelUsername) labelUsername.innerText = 'Voucher Code';
+      if (inputUsername) inputUsername.placeholder = 'Enter voucher code';
     });
 
     tabMember.addEventListener('click', function () {
@@ -53,11 +96,11 @@
       tabVoucher.classList.remove('active');
       if (groupPassword) groupPassword.style.display = 'block';
       if (labelUsername) labelUsername.innerText = 'Username';
-      if (inputUsername) inputUsername.placeholder = 'Masukkan username';
+      if (inputUsername) inputUsername.placeholder = 'Enter username';
     });
   }
 
-  // Open / Close Modal
+  // Modal Controls
   if (btnOpenModal) {
     btnOpenModal.addEventListener('click', function () {
       resetModalState();
@@ -67,9 +110,7 @@
   }
 
   if (btnCloseModal) {
-    btnCloseModal.addEventListener('click', function () {
-      closeModal();
-    });
+    btnCloseModal.addEventListener('click', closeModal);
   }
 
   function closeModal() {
@@ -83,26 +124,25 @@
     stepShowQr.style.display = 'none';
     stepSuccess.style.display = 'none';
     btnPayQris.disabled = true;
-    btnPayQris.innerText = 'Lanjut ke Pembayaran QRIS';
+    btnPayQris.innerHTML = '<span>Continue to Payment</span>';
   }
 
-  // Fetch packages from backend
+  // Fetch Packages
   async function fetchPackages() {
     try {
-      packageContainer.innerHTML = '<p style="text-align:center;font-size:0.85rem;color:#64748b;">Memuat paket...</p>';
+      packageContainer.innerHTML = '<p style="text-align:center;font-size:0.85rem;color:var(--miuix-text-secondary);grid-column:span 2;">Loading packages...</p>';
       const res = await fetch(BACKEND_URL + '/api/packages');
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       activePackages = data.packages || [];
       renderPackages(activePackages);
     } catch (err) {
-      console.warn('Backend unavailable, using fallback packages:', err.message);
-      // Fallback offline packages
+      console.warn('Backend unavailable, using default packages:', err.message);
       activePackages = [
-        { id: '1h', name: '1 Jam', price: 2000, uptime_limit: '1h' },
-        { id: '3h', name: '3 Jam', price: 5000, uptime_limit: '3h' },
-        { id: '1d', name: '1 Hari', price: 10000, uptime_limit: '1d' },
-        { id: '7d', name: '7 Hari', price: 35000, uptime_limit: '7d' }
+        { id: '1h', name: '1 Hour', price: 2000, uptime_limit: '1h' },
+        { id: '3h', name: '3 Hours', price: 5000, uptime_limit: '3h' },
+        { id: '1d', name: '1 Day', price: 10000, uptime_limit: '1d' },
+        { id: '7d', name: '7 Days', price: 35000, uptime_limit: '7d' }
       ];
       renderPackages(activePackages);
     }
@@ -111,33 +151,33 @@
   function renderPackages(packages) {
     packageContainer.innerHTML = '';
     packages.forEach(function (pkg) {
-      const item = document.createElement('div');
-      item.className = 'package-item';
-      item.innerHTML =
+      const card = document.createElement('div');
+      card.className = 'package-card';
+      card.innerHTML =
         '<div class="pkg-name">' + escapeHtml(pkg.name) + '</div>' +
         '<div class="pkg-price">Rp ' + Number(pkg.price).toLocaleString('id-ID') + '</div>' +
-        '<div class="pkg-time">Aktif: ' + escapeHtml(pkg.uptime_limit || pkg.uptimeLimit || '') + '</div>';
+        '<div class="pkg-time">Valid: ' + escapeHtml(pkg.uptime_limit || pkg.uptimeLimit || '') + '</div>';
 
-      item.addEventListener('click', function () {
-        document.querySelectorAll('.package-item').forEach(function (el) {
+      card.addEventListener('click', function () {
+        document.querySelectorAll('.package-card').forEach(function (el) {
           el.classList.remove('selected');
         });
-        item.classList.add('selected');
+        card.classList.add('selected');
         selectedPackage = pkg;
         btnPayQris.disabled = false;
-        btnPayQris.innerText = 'Bayar Rp ' + Number(pkg.price).toLocaleString('id-ID') + ' via QRIS';
+        btnPayQris.innerHTML = '<span>Pay Rp ' + Number(pkg.price).toLocaleString('id-ID') + ' with QRIS</span>';
       });
 
-      packageContainer.appendChild(item);
+      packageContainer.appendChild(card);
     });
   }
 
-  // Initiate QRIS Payment
+  // Create QRIS Payment
   if (btnPayQris) {
     btnPayQris.addEventListener('click', async function () {
       if (!selectedPackage) return;
       btnPayQris.disabled = true;
-      btnPayQris.innerText = 'Menyiapkan QRIS...';
+      btnPayQris.innerHTML = '<span>Generating QRIS...</span>';
 
       try {
         const phone = phoneInput ? phoneInput.value.trim() : '';
@@ -152,18 +192,16 @@
 
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error || 'Gagal membuat QRIS');
+          throw new Error(errData.error || 'Failed to initiate QRIS transaction');
         }
 
         const order = await res.json();
         currentOrderId = order.orderId;
-
-        // Display QRIS
         showQrScreen(order);
       } catch (err) {
-        alert('Terjadi kesalahan: ' + err.message);
+        showToast('Error: ' + err.message);
         btnPayQris.disabled = false;
-        btnPayQris.innerText = 'Coba Lagi';
+        btnPayQris.innerHTML = '<span>Retry Payment</span>';
       }
     });
   }
@@ -174,18 +212,16 @@
 
     qrAmount.innerText = 'Rp ' + Number(order.amount).toLocaleString('id-ID');
 
-    // Display QR image: use qrUrl or Google Chart QR / SVG generator from qrString
     if (order.qrUrl) {
       qrImage.src = order.qrUrl;
     } else if (order.qrString) {
       qrImage.src = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' + encodeURIComponent(order.qrString);
     }
 
-    startCountdown(15 * 60); // 15 minutes
+    startCountdown(15 * 60);
     startPolling(order.orderId);
   }
 
-  // Polling payment status
   function startPolling(orderId) {
     stopPolling();
     pollInterval = setInterval(async function () {
@@ -201,11 +237,11 @@
         } else if (data.status === 'expire' || data.status === 'cancel') {
           stopPolling();
           stopCountdown();
-          alert('Pembayaran telah kedaluwarsa atau dibatalkan.');
+          showToast('Payment expired or cancelled');
           closeModal();
         }
-      } catch (err) {
-        // network polling retry
+      } catch {
+        // Polling retry
       }
     }, 3000);
   }
@@ -227,7 +263,7 @@
       if (remaining <= 0) {
         stopCountdown();
         stopPolling();
-        alert('Waktu pembayaran habis.');
+        showToast('Payment window expired');
         closeModal();
         return;
       }
@@ -253,19 +289,17 @@
     stepSuccess.style.display = 'block';
 
     const voucher = data.voucher || {};
-    const code = voucher.username || 'TERBAYAR';
+    const code = voucher.username || 'CONFIRMED';
     voucherCodeEl.innerText = code;
-    voucherDurationEl.innerText = (data.packageName || '') + ' (' + (voucher.uptimeLimit || '') + ')';
+    voucherDurationEl.innerText = (data.packageName || 'Hotspot') + ' (' + (voucher.uptimeLimit || '') + ')';
 
-    // Copy Voucher button
     if (btnCopyVoucher) {
       btnCopyVoucher.onclick = function () {
         copyToClipboard(code);
-        showToast('Kode voucher berhasil disalin!');
+        showToast('Voucher code copied to clipboard');
       };
     }
 
-    // Auto Login button
     if (btnAutoLogin) {
       btnAutoLogin.onclick = function () {
         if (inputUsername) inputUsername.value = code;
@@ -296,14 +330,10 @@
   }
 
   function showToast(msg) {
-    let toast = document.getElementById('toast');
-    if (!toast) {
-      toast = document.createElement('div');
-      toast.id = 'toast';
-      toast.className = 'toast';
-      document.body.appendChild(toast);
-    }
-    toast.innerText = msg;
+    const toast = document.getElementById('toast');
+    const toastMsg = document.getElementById('toastMsg');
+    if (!toast) return;
+    if (toastMsg) toastMsg.innerText = msg;
     toast.classList.add('show');
     setTimeout(function () {
       toast.classList.remove('show');
@@ -318,24 +348,24 @@
       .replace(/"/g, '&quot;');
   }
 
-  // Check voucher by Order ID
+  // Voucher Retrieval by Order ID
   const btnCheckOrder = document.getElementById('btnCheckOrder');
   if (btnCheckOrder) {
     btnCheckOrder.addEventListener('click', async function () {
-      const orderId = prompt('Masukkan Order ID Anda (contoh: QRIS-XXXX-XXXX):');
+      const orderId = prompt('Enter your Order ID (e.g. QRIS-XXXX-XXXX):');
       if (!orderId) return;
       try {
         const res = await fetch(BACKEND_URL + '/api/payment/status/' + encodeURIComponent(orderId.trim()));
-        if (!res.ok) throw new Error('Order tidak ditemukan');
+        if (!res.ok) throw new Error('Order not found');
         const data = await res.json();
         if (data.voucher) {
           modal.classList.add('active');
           showSuccessScreen(data);
         } else {
-          alert('Status order: ' + data.status + ' (Belum ada voucher)');
+          showToast('Order status: ' + data.status + ' (Voucher not issued)');
         }
       } catch (err) {
-        alert('Gagal mencari voucher: ' + err.message);
+        showToast('Search failed: ' + err.message);
       }
     });
   }
