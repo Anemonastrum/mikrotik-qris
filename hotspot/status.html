@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  $(if refresh-timeout)
+  <meta http-equiv="refresh" content="$(refresh-timeout-value)">
+  $(endif)
+  <meta http-equiv="pragma" content="no-cache">
+  <meta http-equiv="expires" content="-1">
+  <title>Status Hotspot - Terhubung</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    function openLogout() {
+      if (window.name != 'hotspot_status') return true;
+      open('$(link-logout)', 'hotspot_logout', 'toolbar=0,location=0,directories=0,status=0,menubars=0,resizable=1,width=280,height=200');
+      window.close();
+      return false;
+    }
+  </script>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo-badge" style="background:var(--success);">ONLINE</div>
+      <h1>Status Koneksi</h1>
+      <p>Anda telah terhubung ke jaringan internet</p>
+    </div>
+
+    <div class="card">
+      <div class="alert alert-success">
+        <span>✓ <strong>Terhubung sebagai:</strong> $(username)</span>
+      </div>
+
+      <table class="status-table">
+        <tr>
+          <td>Alamat IP</td>
+          <td>$(ip)</td>
+        </tr>
+        <tr>
+          <td>Alamat MAC</td>
+          <td>$(mac)</td>
+        </tr>
+        <tr>
+          <td>Waktu Aktif (Uptime)</td>
+          <td>$(uptime)</td>
+        </tr>
+        $(if session-time-left)
+        <tr>
+          <td>Sisa Waktu</td>
+          <td><strong style="color:var(--primary);">$(session-time-left)</strong></td>
+        </tr>
+        $(endif)
+        <tr>
+          <td>Download / Upload</td>
+          <td>$(bytes-out-nice) / $(bytes-in-nice)</td>
+        </tr>
+        $(if remain-bytes-total)
+        <tr>
+          <td>Sisa Kuota</td>
+          <td>$(remain-bytes-total-nice)</td>
+        </tr>
+        $(endif)
+      </table>
+
+      <form action="$(link-logout)" name="logout" onSubmit="return openLogout()">
+        <button type="submit" class="btn btn-primary" style="background:#dc2626;">
+          KELUAR / DISCONNECT
+        </button>
+      </form>
+    </div>
+
+    <div class="footer">
+      &copy; 2026 Hotspot QRIS System.
+    </div>
+  </div>
+</body>
+</html>

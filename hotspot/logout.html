@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="pragma" content="no-cache">
+  <meta http-equiv="expires" content="-1">
+  <title>Logout Hotspot</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo-badge" style="background:#64748b;">DISCONNECTED</div>
+      <h1>Anda Telah Keluar</h1>
+      <p>Sesi internet Anda telah berhasil diakhiri</p>
+    </div>
+
+    <div class="card">
+      <table class="status-table">
+        <tr>
+          <td>User / Voucher</td>
+          <td>$(username)</td>
+        </tr>
+        <tr>
+          <td>Alamat IP</td>
+          <td>$(ip)</td>
+        </tr>
+        <tr>
+          <td>Total Waktu Online</td>
+          <td>$(uptime)</td>
+        </tr>
+        <tr>
+          <td>Total Pemakaian Data</td>
+          <td>$(bytes-out-nice) (Down) / $(bytes-in-nice) (Up)</td>
+        </tr>
+      </table>
+
+      <a href="$(link-login)" class="btn btn-primary">
+        LOGIN KEMBALI
+      </a>
+    </div>
+
+    <div class="footer">
+      &copy; 2026 Hotspot QRIS System.
+    </div>
+  </div>
+</body>
+</html>

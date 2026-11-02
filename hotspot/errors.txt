@@ -1,0 +1,13 @@
+already-authorizing=Sedang memproses otentikasi... Silakan tunggu.
+auth-in-progress=Otentikasi sedang berjalan.
+cannot-logout=Tidak dapat logout saat ini.
+internal-error=Terjadi kesalahan sistem internal. Silakan coba lagi.
+invalid-mac=Alamat MAC tidak valid.
+invalid-username=Username atau kode voucher tidak valid.
+invalid-password=Password atau kode voucher salah.
+login-by-other=Akun sudah login di perangkat lain.
+no-valid-profile=Profil hotspot tidak valid.
+radius-timeout=Koneksi server otentikasi timeout.
+session-limit=Batas waktu pemakaian habis.
+traffic-limit=Batas kuota internet telah tercapai.
+user-not-found=Kode voucher tidak ditemukan. Pastikan Anda mengetik kode dengan benar.

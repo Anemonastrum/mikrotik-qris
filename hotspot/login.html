@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="pragma" content="no-cache" />
+  <meta http-equiv="expires" content="-1" />
+  <!-- Ubah content backend-url jika Express backend menggunakan IP/Domain khusus -->
+  <meta name="backend-url" content="" />
+  <title>Hotspot Login - Internet Berkecepatan Tinggi</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo-badge">WIFI HOTSPOT</div>
+      <h1>Selamat Datang</h1>
+      <p>Silakan login atau beli voucher untuk mengakses internet</p>
+    </div>
+
+    <!-- MikroTik Error Notification -->
+    $(if error)
+    <div class="alert alert-error">
+      <strong>Gagal:</strong> $(error)
+    </div>
+    $(endif)
+
+    <div class="card">
+      <!-- Login Tabs -->
+      <div class="tabs">
+        <button type="button" class="tab-btn active" id="tabVoucher">Voucher</button>
+        <button type="button" class="tab-btn" id="tabMember">Member</button>
+      </div>
+
+      <!-- MikroTik CHAP Sendin Form -->
+      $(if chap-id)
+      <form name="sendin" action="$(link-login-only)" method="post" style="display:none">
+        <input type="hidden" name="username" />
+        <input type="hidden" name="password" />
+        <input type="hidden" name="dst" value="$(link-orig)" />
+        <input type="hidden" name="popup" value="true" />
+      </form>
+
+      <script src="md5.js"></script>
+      <script>
+        function doLogin() {
+          var form = document.login;
+          var u = form.username.value.trim();
+          var p = form.password.value;
+          // In voucher mode, password is the same as username if left empty
+          if (!p || p === '') {
+            p = u;
+          }
+          document.sendin.username.value = u;
+          document.sendin.password.value = hexMD5('$(chap-id)' + p + '$(chap-challenge)');
+          document.sendin.submit();
+          return false;
+        }
+      </script>
+      $(endif)
+
+      <!-- Actual Login Form -->
+      <form name="login" action="$(link-login-only)" method="post" $(if chap-id)onSubmit="return doLogin()"$(endif)>
+        <input type="hidden" name="dst" value="$(link-orig)" />
+        <input type="hidden" name="popup" value="true" />
+
+        <div class="form-group">
+          <label id="labelUsername" for="username">Kode Voucher</label>
+          <input type="text" id="username" name="username" class="form-control" placeholder="Masukkan kode voucher" required autocomplete="off" />
+        </div>
+
+        <div class="form-group" id="groupPassword" style="display: none;">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" class="form-control" placeholder="Masukkan password" autocomplete="off" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">MASUK / LOGIN</button>
+      </form>
+
+      <button type="button" class="btn btn-secondary" id="btnCheckOrder">
+        🔍 Cek / Cetak Ulang Voucher
+      </button>
+    </div>
+
+    <!-- QRIS Instant Purchase Banner -->
+    <div class="qris-banner">
+      <h2>⚡ Beli Voucher via QRIS</h2>
+      <p>Tidak punya voucher fisik? Beli langsung secara instan menggunakan QRIS (BCA, GoPay, OVO, DANA, ShopeePay).</p>
+      <button type="button" class="btn-qris-buy" id="btnOpenQrisModal">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7"></rect>
+          <rect x="14" y="3" width="7" height="7"></rect>
+          <rect x="14" y="14" width="7" height="7"></rect>
+          <rect x="3" y="14" width="7" height="7"></rect>
+        </svg>
+        Beli Voucher Sekarang
+      </button>
+    </div>
+
+    <div class="footer">
+      &copy; 2026 Hotspot QRIS System. Powered by Midtrans & MikroTik.
+    </div>
+  </div>
+
+  <!-- QRIS Purchase Modal -->
+  <div class="modal-overlay" id="qrisModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Beli Voucher Hotspot</h3>
+        <button type="button" class="modal-close" id="btnCloseQrisModal">&times;</button>
+      </div>
+
+      <!-- Step 1: Select Package & Phone -->
+      <div id="stepSelectPkg">
+        <p style="font-size:0.875rem; color:#64748b; margin-bottom:1rem;">Pilih paket internet sesuai kebutuhan Anda:</p>
+        <div class="package-list" id="packageContainer">
+          <!-- Dynamically populated by JS -->
+        </div>
+
+        <div class="form-group">
+          <label for="customerPhone">Nomor WhatsApp (Opsional)</label>
+          <input type="tel" id="customerPhone" class="form-control" placeholder="Contoh: 08123456789" />
+        </div>
+
+        <button type="button" class="btn btn-primary" id="btnPayQris" disabled>
+          Lanjut ke Pembayaran QRIS
+        </button>
+      </div>
+
+      <!-- Step 2: Display QRIS Code & Live Polling -->
+      <div id="stepShowQr" style="display: none;">
+        <div class="qr-container">
+          <p style="font-size: 0.85rem; color:#64748b; margin-bottom: 0.25rem;">Total Tagihan</p>
+          <h2 id="qrAmount" style="color:var(--primary); font-size:1.5rem; margin-bottom:0.75rem;">Rp 0</h2>
+
+          <div class="qr-box">
+            <img id="qrImage" src="" alt="QRIS Code" />
+          </div>
+
+          <div class="countdown">
+            Sisa waktu bayar: <strong id="qrTimer">15:00</strong>
+          </div>
+
+          <div class="status-badge pending">
+            <div class="pulse-dot"></div>
+            <span>Menunggu Pembayaran...</span>
+          </div>
+
+          <p style="font-size: 0.75rem; color: #94a3b8; text-align: center; margin-top: 1rem; line-height: 1.4;">
+            Buka aplikasi BCA, GoPay, OVO, DANA, ShopeePay, LinkAja, atau Mobile Banking lainnya, lalu scan QRIS di atas.
+          </p>
+        </div>
+      </div>
+
+      <!-- Step 3: Payment Success & Voucher Display -->
+      <div id="stepSuccess" style="display: none;">
+        <div style="text-align: center; padding: 1rem 0;">
+          <div style="display:inline-flex; background:#dcfce7; color:#16a34a; border-radius:50%; width:54px; height:54px; align-items:center; justify-content:center; font-size:1.75rem; margin-bottom:0.75rem;">
+            ✓
+          </div>
+          <h2 style="font-size:1.25rem; color:var(--secondary); font-weight:700;">Pembayaran Berhasil!</h2>
+          <p style="font-size:0.875rem; color:#64748b; margin-top:0.25rem;">Voucher Anda siap digunakan:</p>
+
+          <div class="voucher-result-card">
+            <div style="font-size:0.75rem; color:#64748b; text-transform:uppercase; letter-spacing:1px; font-weight:700;">Kode Voucher</div>
+            <div class="voucher-code-display" id="voucherCodeDisplay">------</div>
+            <div style="font-size:0.8rem; color:#166534; font-weight:600;" id="voucherDurationDisplay">Paket Hotspot</div>
+          </div>
+
+          <button type="button" class="btn btn-secondary" id="btnCopyVoucher" style="margin-bottom:0.5rem;">
+            📋 Salin Kode Voucher
+          </button>
+
+          <button type="button" class="btn btn-success" id="btnAutoLogin">
+            🚀 LOGIN OTOMATIS SEKARANG
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
